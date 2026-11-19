@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: Card-Microservice
+  jpa:
+    open-in-view: false
