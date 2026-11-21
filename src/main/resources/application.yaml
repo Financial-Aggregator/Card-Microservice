@@ -2,4 +2,19 @@ spring:
   application:
     name: Card-Microservice
   jpa:
+    hibernate:
+      ddl-auto: validate
     open-in-view: false
+  grpc:
+    client:
+      channels:
+        account:
+          address: localhost:9090
+        user:
+          address: localhost:9091
+
+app:
+  card:
+    cardNumberSize: 16
+    expiryPeriod: 3y
+    retryCount: 5
