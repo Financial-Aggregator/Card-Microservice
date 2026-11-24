@@ -8,6 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import ru.bank.cardmicroservice.api.dto.CreateCardRequest;
+import ru.bank.cardmicroservice.api.dto.CreateTransferByCardNumberRequest;
+import ru.bank.cardmicroservice.api.dto.CreateTransferByPhoneNumberRequest;
+import ru.bank.cardmicroservice.api.dto.GetCardInfoResponse;
 import ru.bank.cardmicroservice.configs.ApplicationProperties;
 import ru.bank.cardmicroservice.db.entities.Card;
 import ru.bank.cardmicroservice.db.types.CardStatus;
@@ -178,6 +181,13 @@ public class CardService {
         }
 
         return card;
+    }
+
+    public void createTransferByPhoneNumber(CreateTransferByPhoneNumberRequest request, UUID userId) {
+
+    }
+
+    public void createTransferByCardNumber(CreateTransferByCardNumberRequest request, UUID userId) {
     }
 
     private boolean isCardHolder(UUID cardHolder, UUID userId) {

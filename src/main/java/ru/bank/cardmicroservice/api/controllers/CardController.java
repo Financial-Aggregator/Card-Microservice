@@ -8,16 +8,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.coyote.Response;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.bank.cardmicroservice.api.dto.*;
-import ru.bank.cardmicroservice.exceptions.AccessDeniedException;
-import ru.bank.cardmicroservice.exceptions.FailedCreateCardNumberException;
-import ru.bank.cardmicroservice.exceptions.FailedGrpcRequestException;
-import ru.bank.cardmicroservice.exceptions.NotFoundException;
+import ru.bank.cardmicroservice.exceptions.*;
 import ru.bank.cardmicroservice.mappers.CardMapper;
 import ru.bank.cardmicroservice.services.CardService;
 import java.util.UUID;
@@ -100,6 +96,24 @@ public class CardController {
                                cardService.getCardInfo(userId, cardId)
                        )
                 );
+    }
+
+    @PostMapping("/transfer/by/cardNumber")
+    public ResponseEntity<Void> createTransferByCardNumber(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestBody @Valid CreateTransferByCardNumberRequest request
+    ) {
+        cardService.createTransferByCardNumber(request, userId);
+        return ResponseEntity.status(201).build();
+    }
+
+    @PostMapping("/transfer/by/cardNumber")
+    public ResponseEntity<Void> createTransferByPhoneNumber(
+            @RequestHeader("X-User-Id") UUID userId,
+            @RequestBody @Valid CreateTransferByPhoneNumberRequest request
+    ) {
+        cardService.createTransferByPhoneNumber(request, userId);
+        return ResponseEntity.status(201).build();
     }
 
     @ExceptionHandler(FailedCreateCardNumberException.class)
