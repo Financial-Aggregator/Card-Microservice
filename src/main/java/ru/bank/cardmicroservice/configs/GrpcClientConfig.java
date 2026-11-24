@@ -9,7 +9,7 @@ import ru.bank.cardmicroservice.proto.card.user.ClientCardUserGrpc;
 @Configuration
 public class GrpcClientConfig {
     @Bean
-    public ClientCardAccountServiceGrpc.ClientCardAccountServiceBlockingStub clientCardAccountServiceStub(
+    public ClientCardAccountServiceGrpc.ClientCardAccountServiceBlockingStub clientCardAccountServiceBlockingStub(
             GrpcChannelFactory channels
     ) {
         return  ClientCardAccountServiceGrpc.newBlockingStub(
@@ -27,10 +27,19 @@ public class GrpcClientConfig {
     }
 
     @Bean
-    public ClientCardUserGrpc.ClientCardUserStub clientCardUserBlockingAsyncStub(
+    public ClientCardUserGrpc.ClientCardUserStub clientCardUserAsyncStub(
             GrpcChannelFactory channels
     ) {
         return ClientCardUserGrpc.newStub(
+                channels.createChannel("user")
+        );
+    }
+
+    @Bean
+    public ClientCardUserGrpc.ClientCardUserBlockingStub clientCardUserBlockingStub(
+            GrpcChannelFactory channels
+    ) {
+        return ClientCardUserGrpc.newBlockingStub(
                 channels.createChannel("user")
         );
     }
