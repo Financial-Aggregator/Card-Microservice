@@ -12,4 +12,5 @@ import java.util.UUID;
 public interface CardRepository extends JpaRepository<Card, UUID> {
     @Query("select c from Card c where c.userId = :userId and c.isPrimary = true")
     Optional<Card> findPrimaryCardByUserId(@Param("userId") UUID userId);
+    Optional<Card> findByNumber(String number);
 }
