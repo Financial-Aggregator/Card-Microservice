@@ -98,24 +98,6 @@ public class CardController {
                 );
     }
 
-    @PostMapping("/transfer/by/cardNumber")
-    public ResponseEntity<Void> createTransferByCardNumber(
-            @RequestHeader("X-User-Id") UUID userId,
-            @RequestBody @Valid CreateTransferByCardNumberRequest request
-    ) {
-        cardService.createTransferByCardNumber(request, userId);
-        return ResponseEntity.status(201).build();
-    }
-
-    @PostMapping("/transfer/by/cardNumber")
-    public ResponseEntity<Void> createTransferByPhoneNumber(
-            @RequestHeader("X-User-Id") UUID userId,
-            @RequestBody @Valid CreateTransferByPhoneNumberRequest request
-    ) {
-        cardService.createTransferByPhoneNumber(request, userId);
-        return ResponseEntity.status(201).build();
-    }
-
     @ExceptionHandler(FailedCreateCardNumberException.class)
     public ResponseEntity<ErrorResponse> handleFailedCreateCardNumberException(FailedCreateCardNumberException e) {
         log.error(e.getMessage());

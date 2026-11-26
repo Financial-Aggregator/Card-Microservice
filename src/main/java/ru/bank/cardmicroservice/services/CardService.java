@@ -6,15 +6,11 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import ru.bank.cardmicroservice.api.dto.CreateCardRequest;
-import ru.bank.cardmicroservice.api.dto.CreateTransferByCardNumberRequest;
-import ru.bank.cardmicroservice.api.dto.CreateTransferByPhoneNumberRequest;
 import ru.bank.cardmicroservice.configs.ApplicationProperties;
 import ru.bank.cardmicroservice.db.entities.Card;
 import ru.bank.cardmicroservice.db.types.CardStatus;
-import ru.bank.cardmicroservice.events.CreateTransferEvent;
 import ru.bank.cardmicroservice.exceptions.*;
 import ru.bank.cardmicroservice.mappers.CardMapper;
 import ru.bank.cardmicroservice.proto.card.account.ClientCardAccountServiceGrpc;
@@ -37,9 +33,7 @@ public class CardService {
     private final ClientCardAccountServiceGrpc.ClientCardAccountServiceBlockingStub clientCardAccountBlockStub;
     private final ClientCardAccountServiceGrpc.ClientCardAccountServiceStub clientCardAccountAsyncStub;
     private final ClientCardUserGrpc.ClientCardUserStub clientCardUserAsyncStub;
-    private final ClientCardUserGrpc.ClientCardUserBlockingStub clientCardUserBlockingStub;
     private final CardNumberGenerator cardNumberGenerator;
-    private final KafkaTemplate<String, CreateTransferEvent> kafkaTemplate;
 
     public Card createCard(UUID userId, CreateCardRequest request)
             throws FailedCreateCardNumberException, AccessDeniedException, NotFoundException
@@ -179,119 +173,6 @@ public class CardService {
         }
 
         return card;
-    }
-
-    public void createTransferByPhoneNumber(CreateTransferByPhoneNumberRequest request, UUID userId) {
-        //проверить что юзер под userId ввел валидный card_id и соответственно является ли он владельцем
-        Card card = cardRepository.findById(request.getFromCardId())
-                .orElseThrow(
-                    () -> new NotFoundException(
-                            String.format("Карты с id=%s не существует", request.getFromCardId())
-                )
-        );
-
-        if (!card.getUserId().equals(userId)) {
-            //если он не является владельцем то проверить на владельца счета
-            GetCardHolderResponse response = clientCardAccountBlockStub.getCardHolder(
-                    GetCardHolderRequest.newBuilder()
-                            .setAccountId(card.getAccountId().toString())
-                            .build()
-            );
-
-            if (!isCardHolder(UUID.fromString(response.getUserId()), userId)) {
-                throw new AccessDeniedException("У вас не прав на эту карту");
-            }
-        }
-
-        //проверить номер телефона
-        try {
-            GetUserIdByPhoneNumberResponse response = clientCardUserBlockingStub.getUserIdByPhoneNumber(
-                    GetUserIdByPhoneNumberRequest.newBuilder()
-                            .setPhoneNumber(request.getToPhoneNumber())
-                            .build()
-            );
-
-            Card primaryCard = cardRepository.findPrimaryCardByUserId(
-                    UUID.fromString(response.getUserId())
-            ).orElseThrow(
-                    () -> new NotFoundException(
-                            String.format("У пользователя с id=%s нет привязанной карты", response.getUserId())
-                    )
-            );
-
-            //создать событие в кафке
-            kafkaTemplate.send(
-                    "transfer-events",
-                    CreateTransferEvent.builder()
-                            .eventId(UUID.randomUUID())
-                            .amount(request.getAmount())
-                            .fromCardId(request.getFromCardId())
-                            .toCardId(primaryCard.getId())
-                            .transferType(request.getTransferType())
-                            .build()
-            );
-
-        } catch (StatusRuntimeException e) {
-            if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
-                throw new NotFoundException(
-                        String.format("Пользователя с phoneNumber=%s не существует", request.getToPhoneNumber())
-                );
-            }
-
-            throw new FailedGrpcRequestException(
-                    e.getStatus().getCode(), "Неизвестная ошибка во время обращения в сервис пользователей"
-            );
-        }
-    }
-
-    public void createTransferByCardNumber(CreateTransferByCardNumberRequest request, UUID userId) {
-        //проверить что юзер под userId ввел валидный card_id и соответственно является ли он владельцем
-        Card card = cardRepository.findById(request.getFromCardId())
-                .orElseThrow(
-                        () -> new NotFoundException(
-                                String.format("Карты с id=%s не существует", request.getFromCardId())
-                        )
-                );
-
-        if (!card.getUserId().equals(userId)) {
-            //если он не является владельцем то проверить на владельца счета
-            GetCardHolderResponse response = clientCardAccountBlockStub.getCardHolder(
-                    GetCardHolderRequest.newBuilder()
-                            .setAccountId(card.getAccountId().toString())
-                            .build()
-            );
-
-            if (!isCardHolder(UUID.fromString(response.getUserId()), userId)) {
-                throw new AccessDeniedException("У вас не прав на эту карту");
-            }
-        }
-
-        //проверить номер карты
-        if (!cardNumberGenerator.isValidCardNumber(request.getToCardNumber())) {
-            throw new NoValidExeption(
-                    "Неправильный формат номера карты toCardNumber"
-            );
-        }
-
-        Card toCard = cardRepository.findByNumber(
-                request.getToCardNumber()
-        ).orElseThrow(
-                () -> new NotFoundException(
-                        String.format("Карты с номером toCardNumber=%s не существует", request.getToCardNumber())
-                )
-        );
-
-        //создать событие в кафке
-        kafkaTemplate.send(
-                "transfer-events",
-                CreateTransferEvent.builder()
-                        .eventId(UUID.randomUUID())
-                        .amount(request.getAmount())
-                        .fromCardId(request.getFromCardId())
-                        .toCardId(toCard.getId())
-                        .transferType(request.getTransferType())
-                        .build()
-        );
     }
 
     private boolean isCardHolder(UUID cardHolder, UUID userId) {
