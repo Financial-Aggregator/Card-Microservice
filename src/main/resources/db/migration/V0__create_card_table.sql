@@ -18,5 +18,6 @@ create table card (
     type card_type not null,
     payment_system card_payment_system not null,
     expiry_date date not null,
-    status card_status not null
+    status card_status not null,
+    is_primary boolean not null;
 );

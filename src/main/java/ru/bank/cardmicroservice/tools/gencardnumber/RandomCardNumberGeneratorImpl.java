@@ -16,4 +16,16 @@ public class RandomCardNumberGeneratorImpl implements CardNumberGenerator {
         }
         return sb.toString();
     }
+
+    @Override
+    public boolean isValidCardNumber(String cardNumber) {
+        if (cardNumber == null) {
+            return false;
+        }
+        // Удаляем все нецифровые символы (пробелы, дефисы)
+        String digits = cardNumber.replaceAll("\\D", "");
+
+        // Проверка длины
+        return digits.length() == CARD_NUMBER_LENGTH;
+    }
 }
